@@ -62,7 +62,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-
+      - uses: actions/checkout@v4
       # Instalar Google Chrome, ChromeDriver, Selenium, y http-server para el testing
       - name: Dependencias para Testing (Chrome, ChromeDriver, Selenium y HTTP-SV) 
         run: | 
