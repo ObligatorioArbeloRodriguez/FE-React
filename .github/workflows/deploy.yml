@@ -62,7 +62,17 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      
+      # Configurar Node.js
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      # Verifica que tenga acceso al código
+      - name: Verificar acceso al código
+        uses: actions/checkout@v4
+
       # Instalar Google Chrome, ChromeDriver, Selenium, y http-server para el testing
       - name: Dependencias para Testing (Chrome, ChromeDriver, Selenium y HTTP-SV) 
         run: | 
