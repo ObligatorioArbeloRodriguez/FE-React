@@ -58,11 +58,24 @@ jobs:
         working-directory: ./react
         run: npx nx build
 
+      # Guardar el artefacto para usar en selenium
+      - name: Subir artefactos generados
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: ./react/dist/
+
   selenium:
     needs: build
     runs-on: ubuntu-latest
     steps:
       
+      # Descargo la build para luego testear:
+      - name: Descargar artefactos generados
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
       # Configurar Node.js
       - name: Configurar Node.js
         uses: actions/setup-node@v4
@@ -94,6 +107,13 @@ jobs:
     needs: [build, selenium]
     runs-on: ubuntu-latest
     steps:
+   
+      # Descargo la build para luego hacer deploy:
+      - name: Descargar artefactos generados
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
 
      # Acceso bucket
       - name: Configurar acceso al S3 BUCKET

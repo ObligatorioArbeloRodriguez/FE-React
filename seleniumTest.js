@@ -20,7 +20,7 @@ const httpServer = require('http-server'); // Librería para servidor local
 
     let driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
     try {
-        // Abre la página servida localmente
+          // Abre la página servida localmente
         await driver.get(`http://localhost:${port}`); // URL local
 
         // Verifica que el título sea correcto
