@@ -42,6 +42,28 @@ jobs:
         working-directory: ./react
         run: npx nx build
 
+      # Hacer test Sonarcloud
+      - name: SonarQube Cloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # Quality gate de sonar (si pasa el test o no)
+      # Verificar Quality Gate
+      - name: Verificar Quality Gate de SonarCloud
+        run: |
+          STATUS=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" \
+            "https://sonarcloud.io/api/qualitygates/project_status?projectKey=ObligatorioArbeloRodriguez_FE-React" \
+            | jq -r .projectStatus.status)
+          if [ "$STATUS" != "OK" ]; then
+            echo "El proyecto no pasó el Quality Gate: $STATUS"
+            exit 1
+          fi
+          echo "Prueba pasa el quality gate"
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
+
       # Ejecutar pruebas con Selenium
       - name: Ejecutar prueba Selenium 
         run: node seleniumTest.js
