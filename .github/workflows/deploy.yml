@@ -63,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
-          path: ./react/dist
+          path: ${{ github.workspace }}
 
   selenium:
     needs: build
