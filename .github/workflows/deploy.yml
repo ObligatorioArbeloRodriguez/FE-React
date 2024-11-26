@@ -63,14 +63,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
-          path: ./react/dist/
+          path: ./react/dist
 
   selenium:
     needs: build
     runs-on: ubuntu-latest
     steps:
       
-  
 
       # Configurar Node.js
       - name: Configurar Node.js
