@@ -82,23 +82,28 @@ jobs:
 
       - name: Ejecutar prueba Selenium
         run: node seleniumTest.js
+  login-aws:
+    name: Configurar credenciales AWS
+    needs: selenium
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configurar credenciales AWS
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
   deploy_dev_y_test:
     name: Deploy a ambientes DEV y TEST
-    needs: selenium
+    needs: [selenium, login-aws] 
     runs-on: ubuntu-latest
     steps:
       - name: Descargar artefactos generados
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
-      - name: Configurar acceso a AWS
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
       - name: Deploy al bucket DEV
         run: aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_DEV }}
       - name: Deploy al bucket TEST
@@ -106,27 +111,15 @@ jobs:
 
   deploy_a_prod:
     name: Deploy a PROD
-    needs: deploy_dev_y_test
+    needs: [deploy_dev_y_test, login-aws]
     runs-on: ubuntu-latest
     environment:
       name: production
     steps:
-   
-      
       - name: Descargar artefactos generados
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
-
-
-   
-      - name: Vuelvo a configurar credenciales AWS
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
 
       - name: Deploy a S3 - Producción
         run: aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_PROD }}
