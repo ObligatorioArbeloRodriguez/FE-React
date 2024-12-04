@@ -32,7 +32,6 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-
   build:
     needs: sonarcloud
     runs-on: ubuntu-latest
@@ -52,15 +51,16 @@ jobs:
         working-directory: ./react
         run: npm install
 
-      # Instalar Google Chrome, ChromeDriver, Selenium, y http-server para el testing
-      - name: Dependencias para Testing (Chrome, ChromeDriver, Selenium y HTTP-SV)
-
       # Realizar la build
+      - name: Generar build del código
+        working-directory: ./react
+        run: npx nx build
+        # Realizar la build
       - name: Generar build del código 
         working-directory: ./react
         run: npx nx build
 
-      # Guardar el artefacto para usar en selenium
+        # Guardar el artefacto para usar en selenium
       - name: Subir artefactos generados
         uses: actions/upload-artifact@v4
         with:
@@ -116,7 +116,7 @@ jobs:
           aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_DEV }}
           aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_TEST }}
 
-  deploy_prod:
+  aprobacion_manual:
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -124,13 +124,8 @@ jobs:
       name: production
     steps:
       - name: Esperando aprobación manual
-        run: |
+        run: 
           echo "Esperando aprobación manual para desplegar a producción..."
-          read -p "Presiona Enter para continuar con el despliegue a producción..."
-
-
-      # Configurar acceso al S3 BUCKET de Producción
-      - name: Configurar acceso al S3 BUCKET de Producción
 
   deploy:
     needs: [build, selenium]
