@@ -59,6 +59,7 @@ jobs:
           path: ${{ github.workspace }}
  #Evaluar si conviene usar una imagen para agilizar el proceso de cada ejecucion de pipeline para no instalar todo cada vez
   selenium:
+    name: Test de Selenium
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -83,6 +84,7 @@ jobs:
         run: node seleniumTest.js
 
   deploy_dev_y_test:
+    name: Deploy a ambientes DEV y TEST
     needs: selenium
     runs-on: ubuntu-latest
     steps:
@@ -103,6 +105,7 @@ jobs:
         run: aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_TEST }}
 
   deploy_a_prod:
+    name: Deploy a PROD
     needs: deploy_dev_y_test
     runs-on: ubuntu-latest
     environment:
