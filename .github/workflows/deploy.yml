@@ -55,10 +55,6 @@ jobs:
       - name: Generar build del código
         working-directory: ./react
         run: npx nx build
-        # Realizar la build
-      - name: Generar build del código 
-        working-directory: ./react
-        run: npx nx build
 
         # Guardar el artefacto para usar en selenium
       - name: Subir artefactos generados
@@ -71,17 +67,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      
-
-      # Configurar Node.js
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          
-      # Verifica que tenga acceso al código
-    #  - name: Verificar acceso al código
-     #   uses: actions/checkout@v4
 
          # Descargo la build para luego testear:
       - name: Descargar artefactos generados
@@ -101,11 +86,6 @@ jobs:
           npm install selenium-webdriver chromedriver
           npm install http-server 
 
-      # Realizar la build
-      - name: Generar build del código
-        working-directory: ./react
-        run: npx nx build
-
       # Ejecutar pruebas con Selenium
       - name: Ejecutar prueba Selenium
         run: node seleniumTest.js
@@ -117,7 +97,7 @@ jobs:
           aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_TEST }}
 
   aprobacion_manual:
-    needs: build
+    needs: selenium
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
@@ -128,7 +108,7 @@ jobs:
           echo "Esperando aprobación manual para desplegar a producción..."
 
   deploy:
-    needs: [build, selenium]
+    needs: aprobacion_manual
     runs-on: ubuntu-latest
     steps:
    
