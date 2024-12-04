@@ -32,6 +32,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+
   build:
     needs: sonarcloud
     runs-on: ubuntu-latest
@@ -53,6 +54,43 @@ jobs:
 
       # Instalar Google Chrome, ChromeDriver, Selenium, y http-server para el testing
       - name: Dependencias para Testing (Chrome, ChromeDriver, Selenium y HTTP-SV)
+
+      # Realizar la build
+      - name: Generar build del código 
+        working-directory: ./react
+        run: npx nx build
+
+      # Guardar el artefacto para usar en selenium
+      - name: Subir artefactos generados
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: ${{ github.workspace }}
+
+  selenium:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      
+
+      # Configurar Node.js
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      # Verifica que tenga acceso al código
+    #  - name: Verificar acceso al código
+     #   uses: actions/checkout@v4
+
+         # Descargo la build para luego testear:
+      - name: Descargar artefactos generados
+        uses: actions/download-artifact@v4
+        with:
+           name: build-artifacts
+
+      # Instalar Google Chrome, ChromeDriver, Selenium, y http-server para el testing
+      - name: Dependencias para Testing (Chrome, ChromeDriver, Selenium y HTTP-SV) 
         run: | 
           sudo apt-get update
           sudo apt-get install -y wget gnupg
@@ -90,8 +128,24 @@ jobs:
           echo "Esperando aprobación manual para desplegar a producción..."
           read -p "Presiona Enter para continuar con el despliegue a producción..."
 
+
       # Configurar acceso al S3 BUCKET de Producción
       - name: Configurar acceso al S3 BUCKET de Producción
+
+  deploy:
+    needs: [build, selenium]
+    runs-on: ubuntu-latest
+    steps:
+   
+      # Descargo la build para luego hacer deploy:
+      - name: Descargar artefactos generados
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+
+     # Acceso bucket
+      - name: Configurar acceso al S3 BUCKET
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
