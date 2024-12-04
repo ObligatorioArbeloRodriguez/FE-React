@@ -33,6 +33,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   build:
+    name: Build 
     needs: sonarcloud
     runs-on: ubuntu-24.04
     steps:
@@ -82,36 +83,32 @@ jobs:
 
       - name: Ejecutar prueba Selenium
         run: node seleniumTest.js
-  login-aws:
-    name: Configurar credenciales AWS
-    needs: selenium
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Configurar credenciales AWS
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: ${{ secrets.AWS_REGION }}
 
   deploy_dev_y_test:
-    name: Deploy a ambientes DEV y TEST
-    needs: [selenium, login-aws] 
+    name: Deploy a ambientes DEV y TEST 🚀
+    needs: selenium
     runs-on: ubuntu-24.04
     steps:
       - name: Descargar artefactos generados
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
-      - name: Deploy al bucket DEV
+      - name: Configurar credenciales AWS
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+            aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy al bucket DEV 🚀
         run: aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_DEV }}
-      - name: Deploy al bucket TEST
+      - name: Deploy al bucket TEST 🚀
         run: aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_TEST }}
 
   deploy_a_prod:
     name: Deploy a PROD
-    needs: [deploy_dev_y_test, login-aws]
+    needs: deploy_dev_y_test
     runs-on: ubuntu-24.04
     environment:
       name: production
@@ -120,6 +117,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
+      - name: Configurar credenciales AWS
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+            aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Deploy a S3 - Producción
+
+      - name: Deploy a S3 - Producción 🚀
         run: aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_PROD }}
