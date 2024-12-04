@@ -12,11 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0
       - name: SonarQube Cloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Necesario para obtener información del PR si la hay
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Verificar Quality Gate de SonarCloud
@@ -36,46 +36,39 @@ jobs:
     needs: sonarcloud
     runs-on: ubuntu-latest
     steps:
-      # Verifica que tenga acceso al código
       - name: Verificar acceso al código
         uses: actions/checkout@v4
 
-      # Configurar Node.js
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # Instalar dependencias
       - name: Instalar dependencias de Node
         working-directory: ./react
         run: npm install
 
-      # Realizar la build
       - name: Generar build del código
         working-directory: ./react
         run: npx nx build
 
-        # Guardar el artefacto para usar en selenium
       - name: Subir artefactos generados
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: ${{ github.workspace }}
-
+ #Evaluar si conviene usar una imagen para agilizar el proceso de cada ejecucion de pipeline para no instalar todo cada vez
   selenium:
     needs: build
     runs-on: ubuntu-latest
     steps:
 
-         # Descargo la build para luego testear:
-      - name: Descargar artefactos generados
+      - name: Descargar artefactos generados para testear
         uses: actions/download-artifact@v4
         with:
            name: build-artifacts
 
-      # Instalar Google Chrome, ChromeDriver, Selenium, y http-server para el testing
-      - name: Dependencias para Testing (Chrome, ChromeDriver, Selenium y HTTP-SV) 
+      - name: Instalando dependencias para Testing (Chrome, ChromeDriver, Selenium y HTTP-SV) 
         run: | 
           sudo apt-get update
           sudo apt-get install -y wget gnupg
@@ -86,41 +79,45 @@ jobs:
           npm install selenium-webdriver chromedriver
           npm install http-server 
 
-      # Ejecutar pruebas con Selenium
       - name: Ejecutar prueba Selenium
         run: node seleniumTest.js
 
-      # Subir a S3 (dev y test)
-      - name: Deploy a S3 (dev y test)
-        run: |
-          aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_DEV }}
-          aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_TEST }}
-
-  aprobacion_manual:
+  deploy_dev_y_test:
     needs: selenium
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Descargar artefactos generados
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+      - name: Configurar acceso a AWS
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+      - name: Deploy al bucket DEV
+        run: aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_DEV }}
+      - name: Deploy al bucket TEST
+        run: aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_TEST }}
+
+  deploy_a_prod:
+    needs: deploy_dev_y_test
+    runs-on: ubuntu-latest
     environment:
       name: production
     steps:
-      - name: Esperando aprobación manual
-        run: 
-          echo "Esperando aprobación manual para desplegar a producción..."
-
-  deploy:
-    needs: aprobacion_manual
-    runs-on: ubuntu-latest
-    steps:
    
-      # Descargo la build para luego hacer deploy:
+      
       - name: Descargar artefactos generados
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
 
 
-     # Acceso bucket
-      - name: Configurar acceso al S3 BUCKET
+   
+      - name: Vuelvo a configurar credenciales AWS
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -128,6 +125,5 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
 
-      # Deploy a S3 - Producción 🚀
       - name: Deploy a S3 - Producción
         run: aws s3 sync ./react/dist/apps/catalog s3://${{ secrets.S3_BUCKET_PROD }}
